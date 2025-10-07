@@ -38,8 +38,64 @@ type ShareOptionKey = "instagram" | "facebook" | "copy";
 
 const shareOptionOrder: ShareOptionKey[] = ["instagram", "facebook", "copy"];
 
+const floatingAccents: {
+  id: string;
+  className: string;
+  animation: {
+    initial: { opacity: number; scale: number };
+    animate: { opacity: number; scale: number; y: number[] };
+    transition: {
+      duration: number;
+      repeat: number;
+      repeatType: "mirror";
+      delay?: number;
+    };
+  };
+}[] = [
+  {
+    id: "sunrise",
+    className:
+      "left-[-10%] top-[-12%] h-72 w-72 bg-[radial-gradient(circle_at_center,_rgba(239,212,190,0.55)_0%,_rgba(239,212,190,0)_70%)]",
+    animation: {
+      initial: { opacity: 0, scale: 0.9 },
+      animate: { opacity: 1, scale: 1, y: [0, 14, 0] },
+      transition: { duration: 14, repeat: Infinity, repeatType: "mirror" },
+    },
+  },
+  {
+    id: "terracotta",
+    className:
+      "right-[-14%] top-[8%] h-60 w-60 bg-[radial-gradient(circle_at_center,_rgba(214,153,115,0.45)_0%,_rgba(214,153,115,0)_70%)]",
+    animation: {
+      initial: { opacity: 0, scale: 0.95 },
+      animate: { opacity: 1, scale: 1, y: [0, -18, 0] },
+      transition: {
+        duration: 18,
+        repeat: Infinity,
+        repeatType: "mirror",
+        delay: 2,
+      },
+    },
+  },
+  {
+    id: "blush",
+    className:
+      "bottom-[-18%] left-[12%] h-80 w-80 bg-[radial-gradient(circle_at_center,_rgba(240,217,202,0.55)_0%,_rgba(240,217,202,0)_70%)]",
+    animation: {
+      initial: { opacity: 0, scale: 0.9 },
+      animate: { opacity: 1, scale: 1, y: [0, 20, 0] },
+      transition: {
+        duration: 16,
+        repeat: Infinity,
+        repeatType: "mirror",
+        delay: 1.2,
+      },
+    },
+  },
+];
+
 const tooltipBaseClasses =
-  "pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#71513d] shadow-lg shadow-[#d9c3b0]/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100";
+  "pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#71513d] shadow-lg shadow-[#d9c3b0]/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100";
 
 const ClientGalleryDetailsEnhanced: React.FC<
   ClientGalleryDetailsEnhancedProps
@@ -279,17 +335,22 @@ const ClientGalleryDetailsEnhanced: React.FC<
     <div className="relative min-h-screen bg-[#f9f4ef] text-[#5f4636]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_#fefaf4_0%,_#f1e4d6_50%,_#e7d4c0_100%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/fabric-of-squares.png')] opacity-[0.08]" />
+      <FloatingAccents />
 
       <div className="relative z-10">
         <header className="border-b border-[#d8c4b4]/60 bg-white/70 backdrop-blur-xl">
           <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <button
-                onClick={onBack}
-                className="group rounded-full bg-[#f2e3d6] p-3 text-[#7c5a45] shadow-md shadow-[#d9c3b0]/50 transition hover:bg-[#eed4c0]"
-              >
-                <ArrowLeft className="h-5 w-5 transition group-hover:-translate-x-1" />
-              </button>
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  aria-label="Go back to galleries"
+                  className="group rounded-full bg-[#f2e3d6] p-3 text-[#7c5a45] shadow-md shadow-[#d9c3b0]/50 transition hover:bg-[#eed4c0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#f9f4ef]"
+                >
+                  <ArrowLeft className="h-5 w-5 transition group-hover:-translate-x-1" />
+                </button>
+              )}
               <div>
                 <p className="text-sm uppercase tracking-[0.4em] text-[#b08a6b]">
                   Client Gallery
@@ -459,14 +520,17 @@ const ClientGalleryDetailsEnhanced: React.FC<
             className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f140d]/70 backdrop-blur-sm"
           >
             <button
+              type="button"
               onClick={() => setLightboxIndex(null)}
-              className="absolute right-8 top-8 rounded-full bg-white/80 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white"
+              className="absolute right-8 top-8 rounded-full bg-white/80 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a]"
               aria-label="Close viewer"
+              title="Close viewer"
             >
               <X className="h-5 w-5" />
             </button>
 
             <button
+              type="button"
               onClick={() =>
                 setLightboxIndex((current) => {
                   if (current === null) return current;
@@ -475,21 +539,24 @@ const ClientGalleryDetailsEnhanced: React.FC<
                     : current - 1;
                 })
               }
-              className="absolute left-6 rounded-full bg-white/70 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white"
+              className="absolute left-6 rounded-full bg-white/70 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a]"
               aria-label="Previous image"
+              title="Previous image"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
 
             <button
+              type="button"
               onClick={() =>
                 setLightboxIndex((current) => {
                   if (current === null) return current;
                   return current >= filteredImages.length - 1 ? 0 : current + 1;
                 })
               }
-              className="absolute right-6 rounded-full bg-white/70 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white"
+              className="absolute right-6 rounded-full bg-white/70 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a]"
               aria-label="Next image"
+              title="Next image"
             >
               <ChevronRight className="h-6 w-6" />
             </button>
@@ -512,18 +579,22 @@ const ClientGalleryDetailsEnhanced: React.FC<
             >
               {gallery.allow_downloads && (
                 <button
+                  type="button"
                   onClick={() =>
                     lightboxImageId && handleDownload(lightboxImageId)
                   }
-                  className="flex items-center gap-2 rounded-full bg-[#f2e3d6] px-3 py-2 transition hover:bg-[#eed4c0]"
+                  className="flex items-center gap-2 rounded-full bg-[#f2e3d6] px-3 py-2 transition hover:bg-[#eed4c0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a]"
+                  aria-label="Download this photo"
                 >
                   <Download className="h-4 w-4" />
                   Download
                 </button>
               )}
               <button
+                type="button"
                 onClick={() => lightboxImageId && handleShare(lightboxImageId)}
-                className="flex items-center gap-2 rounded-full bg-[#f2e3d6] px-3 py-2 transition hover:bg-[#eed4c0]"
+                className="flex items-center gap-2 rounded-full bg-[#f2e3d6] px-3 py-2 transition hover:bg-[#eed4c0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a]"
+                aria-label="Share this photo"
               >
                 <Share2 className="h-4 w-4" />
                 Share
@@ -532,6 +603,10 @@ const ClientGalleryDetailsEnhanced: React.FC<
           </motion.div>
         )}
       </AnimatePresence>
+
+      <span className="sr-only" aria-live="polite" role="status">
+        {copiedShare ? "Photo link copied to clipboard" : ""}
+      </span>
 
       <motion.div
         initial={{ opacity: 0, y: 40 }}
@@ -604,6 +679,10 @@ const ImageCard: React.FC<ImageCardProps> = ({
   onShareOption,
 }) => {
   const [loaded, setLoaded] = useState(false);
+  const sharePanelId = useMemo(
+    () => `share-menu-${imageId.replace(/[^a-zA-Z0-9_-]/g, "-")}`,
+    [imageId],
+  );
 
   return (
     <div
@@ -614,7 +693,8 @@ const ImageCard: React.FC<ImageCardProps> = ({
       <button
         type="button"
         onClick={onOpen}
-        className="relative block h-full w-full"
+        className="relative block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#d29b7a]"
+        aria-label="Open photo in lightbox"
       >
         <AnimatePresence>{!loaded && <ShimmerOverlay />}</AnimatePresence>
         <motion.img
@@ -644,15 +724,19 @@ const ImageCard: React.FC<ImageCardProps> = ({
             event.stopPropagation();
             onToggleFavorite();
           }}
+          aria-pressed={isFavorite}
+          aria-label={
+            isFavorite ? "Remove from favorites" : "Save to favorites"
+          }
           whileTap={{ scale: 0.9 }}
           animate={
             isFavorite
               ? { scale: [1, 1.2, 1], transition: { duration: 0.4 } }
               : { scale: 1 }
           }
-          className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a] focus-visible:ring-offset-2"
         >
-          <span className="pointer-events-none absolute -top-9 whitespace-nowrap rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#71513d] opacity-0 shadow-lg shadow-[#d9c3b0]/40 transition group-hover:opacity-100">
+          <span className="pointer-events-none absolute -top-9 whitespace-nowrap rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#71513d] opacity-0 shadow-lg shadow-[#d9c3b0]/40 transition group-hover:opacity-100 group-focus-visible:opacity-100">
             {isFavorite ? "Remove favorite" : "Save to favorites"}
           </span>
           <Heart
@@ -671,7 +755,9 @@ const ImageCard: React.FC<ImageCardProps> = ({
                 event.stopPropagation();
                 onDownload();
               }}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white"
+              aria-label="Download photo"
+              title="Download photo"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a] focus-visible:ring-offset-2"
             >
               <Download className="h-4 w-4" />
             </button>
@@ -687,7 +773,14 @@ const ImageCard: React.FC<ImageCardProps> = ({
               event.stopPropagation();
               onShare();
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white"
+            aria-haspopup="menu"
+            aria-expanded={showShare}
+            aria-controls={showShare ? sharePanelId : undefined}
+            aria-label={
+              showShare ? "Close share options" : "Open share options"
+            }
+            title="Share this photo"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a] focus-visible:ring-offset-2"
           >
             <Share2 className="h-4 w-4" />
           </button>
@@ -701,6 +794,8 @@ const ImageCard: React.FC<ImageCardProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
+            id={sharePanelId}
+            role="menu"
             className="absolute bottom-20 right-4 z-20 w-52 rounded-2xl bg-white/95 p-3 text-sm text-[#6d4f3f] shadow-2xl shadow-[#b99273]/40"
             onClick={(event) => event.stopPropagation()}
           >
@@ -716,7 +811,8 @@ const ImageCard: React.FC<ImageCardProps> = ({
                     event.stopPropagation();
                     onShareOption(option);
                   }}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-[#f6e8dc]"
+                  role="menuitem"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-[#f6e8dc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a]"
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2e3d6] text-[#7d5b46]">
                     {shareButtons[option].icon}
@@ -744,6 +840,21 @@ const ShimmerOverlay: React.FC = () => (
   />
 );
 
+const FloatingAccents: React.FC = () => (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    {floatingAccents.map(({ id, className, animation }) => (
+      <motion.span
+        key={id}
+        initial={animation.initial}
+        animate={animation.animate}
+        transition={animation.transition}
+        aria-hidden="true"
+        className={`absolute rounded-full blur-3xl ${className}`}
+      />
+    ))}
+  </div>
+);
+
 interface FloatingActionButtonProps {
   icon: React.ReactNode;
   label: string;
@@ -761,13 +872,15 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-12 w-12 items-center justify-center rounded-full border border-[#e7d4c3] bg-white/90 text-[#6d4f3f] shadow-xl shadow-[#d9c3b0]/40 transition hover:-translate-y-1 hover:bg-white ${
+      aria-label={label}
+      aria-pressed={typeof active === "boolean" ? active : undefined}
+      className={`flex h-12 w-12 items-center justify-center rounded-full border border-[#e7d4c3] bg-white/90 text-[#6d4f3f] shadow-xl shadow-[#d9c3b0]/40 transition hover:-translate-y-1 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d29b7a] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
         active ? "ring-2 ring-[#d29b7a]/80" : ""
       }`}
     >
       {icon}
     </button>
-    <span className="pointer-events-none absolute right-[110%] top-1/2 -translate-y-1/2 rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#6d4f3f] opacity-0 shadow-lg shadow-[#d9c3b0]/40 transition group-hover:opacity-100">
+    <span className="pointer-events-none absolute right-[110%] top-1/2 -translate-y-1/2 rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#6d4f3f] opacity-0 shadow-lg shadow-[#d9c3b0]/40 transition group-hover:opacity-100 group-focus-visible:opacity-100">
       {label}
     </span>
   </div>
