@@ -38,20 +38,20 @@ export default function GallerySection() {
           setGalleries(data);
           console.log('🎨 [GallerySection] State updated with galleries:', data.length);
         }
-      } catch (e: any) {
-        console.error('❌ [GallerySection] Error:', e);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Error loading galleries';
+        const stack = error instanceof Error ? error.stack : undefined;
+        console.error('❌ [GallerySection] Error:', error);
         console.error('❌ [GallerySection] Error details:', {
-          message: e?.message,
-          stack: e?.stack
+          message,
+          stack
         });
-        if (mounted) setErr(e?.message ?? 'Error loading galleries');
+        if (mounted) setErr(message);
       } finally {
         if (mounted) {
           setLoading(false);
           console.log('🎨 [GallerySection] Loading finished. Final state:', {
-            galleriesCount: galleries.length,
-            loading: false,
-            error: err
+            loading: false
           });
         }
       }

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, Download, LogOut, Calendar, Image as ImageIcon } from 'lucide-react';
+import { Heart, LogOut, Calendar, Image as ImageIcon } from 'lucide-react';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -8,11 +8,18 @@ import { getCloudinaryThumbnail, getCloudinaryFullSize } from '../utils/cloudina
 import { supabase } from '../lib/supabase';
 import type { ClientGallery } from '../types';
 
+interface FavoriteRow {
+  image_public_id: string;
+}
+
 export default function GalleryViewer() {
   const navigate = useNavigate();
   const { galleryId } = useParams();
   const { language, translations } = useLanguage();
-  const t = translations[language];
+  const activeTranslations = translations[language];
+  const viewerTexts = activeTranslations.galleryViewer;
+  const loadingMessage = activeTranslations.gallerySection?.loadingMemories ?? 'Loading gallery...';
+  const locale = language === 'bg' ? 'bg-BG' : 'en-US';
 
   const [gallery, setGallery] = useState<ClientGallery | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -20,24 +27,7 @@ export default function GalleryViewer() {
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
 
-  useEffect(() => {
-    // Check session
-    const sessionData = sessionStorage.getItem('client_gallery_session');
-    if (!sessionData || !galleryId) {
-      navigate('/client-gallery');
-      return;
-    }
-
-    const session = JSON.parse(sessionData);
-    if (session.gallery_id !== galleryId) {
-      navigate('/client-gallery');
-      return;
-    }
-
-    loadGalleryData();
-  }, [galleryId, navigate]);
-
-  async function loadGalleryData() {
+  const loadGalleryData = useCallback(async () => {
     if (!galleryId) return;
 
     try {
@@ -62,7 +52,10 @@ export default function GalleryViewer() {
       // Load favorites
       const sessionData = sessionStorage.getItem('client_gallery_session');
       if (sessionData) {
-        const session = JSON.parse(sessionData);
+        const session = JSON.parse(sessionData) as {
+          gallery_id: string;
+          client_email: string;
+        };
         const { data: favoritesData } = await supabase
           .from('client_gallery_favorites')
           .select('image_public_id')
@@ -70,17 +63,36 @@ export default function GalleryViewer() {
           .eq('client_email', session.client_email);
 
         if (favoritesData) {
-          const favIds = new Set(favoritesData.map((f: any) => f.image_public_id));
+          const favIds = new Set(
+            (favoritesData as FavoriteRow[]).map((favorite) => favorite.image_public_id)
+          );
           setFavorites(favIds);
           console.log('Favorites loaded:', favIds.size);
         }
       }
-    } catch (err) {
-      console.error('Error in loadGalleryData:', err);
+    } catch (error: unknown) {
+      console.error('Error in loadGalleryData:', error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [galleryId, navigate]);
+
+  useEffect(() => {
+    // Check session
+    const sessionData = sessionStorage.getItem('client_gallery_session');
+    if (!sessionData || !galleryId) {
+      navigate('/client-gallery');
+      return;
+    }
+
+    const session = JSON.parse(sessionData) as { gallery_id: string };
+    if (session.gallery_id !== galleryId) {
+      navigate('/client-gallery');
+      return;
+    }
+
+    void loadGalleryData();
+  }, [galleryId, loadGalleryData, navigate]);
 
   async function handleToggleFavorite(imageId: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -88,7 +100,10 @@ export default function GalleryViewer() {
     const sessionData = sessionStorage.getItem('client_gallery_session');
     if (!sessionData || !gallery) return;
 
-    const session = JSON.parse(sessionData);
+    const session = JSON.parse(sessionData) as {
+      gallery_id: string;
+      client_email: string;
+    };
     const isFavorite = favorites.has(imageId);
 
     try {
@@ -122,8 +137,8 @@ export default function GalleryViewer() {
           setFavorites(newFavorites);
         }
       }
-    } catch (err) {
-      console.error('Error toggling favorite:', err);
+    } catch (error: unknown) {
+      console.error('Error toggling favorite:', error);
     }
   }
 
@@ -146,7 +161,7 @@ export default function GalleryViewer() {
       <div className="min-h-screen bg-gradient-to-br from-[#faf8f3] to-[#f5e6d3] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7c9885] mx-auto mb-4"></div>
-          <p className="text-[#2c3831]">Зареждане на галерията...</p>
+          <p className="text-[#2c3831]">{loadingMessage}</p>
         </div>
       </div>
     );
@@ -159,13 +174,16 @@ export default function GalleryViewer() {
   const daysUntilExpiration = getDaysUntilExpiration();
   const showExpirationWarning = daysUntilExpiration !== null && daysUntilExpiration <= 7 && daysUntilExpiration > 0;
   const displayImages = gallery.images || [];
-  const filteredImages = showFavoritesOnly 
-    ? displayImages.filter(img => favorites.has(img))
+  const filteredImages = showFavoritesOnly
+    ? displayImages.filter((imageId) => favorites.has(imageId))
     : displayImages;
+  const totalImages = filteredImages.length;
 
-  const lightboxSlides = filteredImages.map(img => ({
-    src: getCloudinaryFullSize(img),
-    alt: ''
+  const lightboxSlides = filteredImages.map((imageId, index) => ({
+    src: getCloudinaryFullSize(imageId),
+    alt: viewerTexts.imageOf
+      .replace('{current}', String(index + 1))
+      .replace('{total}', totalImages.toString())
   }));
 
   return (
@@ -183,16 +201,16 @@ export default function GalleryViewer() {
               <div className="flex items-center gap-4 text-sm text-[#2c3831]/60">
                 <span className="flex items-center gap-1">
                   <ImageIcon className="w-4 h-4" />
-                  {displayImages.length} снимки
+                  {viewerTexts.totalImages.replace('{count}', displayImages.length.toString())}
                 </span>
                 <span className="flex items-center gap-1">
                   <Heart className="w-4 h-4" />
-                  {favorites.size} любими
+                  {viewerTexts.favoriteCount.replace('{count}', favorites.size.toString())}
                 </span>
                 {gallery.expiration_date && (
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    Изтича на {new Date(gallery.expiration_date).toLocaleDateString('bg-BG')}
+                    {`${viewerTexts.expiresOn} ${new Date(gallery.expiration_date).toLocaleDateString(locale)}`}
                   </span>
                 )}
               </div>
@@ -207,7 +225,7 @@ export default function GalleryViewer() {
                     : 'bg-white border border-[#2c3831]/20 text-[#2c3831] hover:border-[#7c9885]'
                 }`}
               >
-                {showFavoritesOnly ? 'Всички снимки' : 'Само любими'}
+                {showFavoritesOnly ? viewerTexts.showAll : viewerTexts.showFavoritesOnly}
               </button>
 
               <button
@@ -215,7 +233,7 @@ export default function GalleryViewer() {
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-[#2c3831]/20 text-[#2c3831] hover:border-red-400 hover:text-red-600 transition-colors flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
-                Изход
+                {viewerTexts.logout}
               </button>
             </div>
           </div>
@@ -227,7 +245,7 @@ export default function GalleryViewer() {
         <div className="bg-amber-50 border-b border-amber-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <p className="text-sm text-amber-800">
-              Галерията изтича след {daysUntilExpiration} дни
+              {viewerTexts.expiresIn.replace('{days}', String(daysUntilExpiration))}
             </p>
           </div>
         </div>
@@ -250,10 +268,10 @@ export default function GalleryViewer() {
           <div className="text-center py-16">
             <ImageIcon className="w-16 h-16 text-[#2c3831]/20 mx-auto mb-4" />
             <h3 className="text-xl font-medium text-[#2c3831] mb-2">
-              {showFavoritesOnly ? 'Няма маркирани любими' : 'Галерията все още се подготвя'}
+              {showFavoritesOnly ? viewerTexts.noFavorites : viewerTexts.noImages}
             </h3>
             <p className="text-[#2c3831]/60">
-              {showFavoritesOnly ? 'Натиснете сърцето на снимка, за да я добавите' : 'Моля, върнете се по-късно'}
+              {showFavoritesOnly ? viewerTexts.noFavoritesDescription : viewerTexts.noImagesDescription}
             </p>
           </div>
         ) : (
@@ -266,7 +284,9 @@ export default function GalleryViewer() {
               >
                 <img
                   src={getCloudinaryThumbnail(imageId)}
-                  alt={`Image ${index + 1}`}
+                  alt={viewerTexts.imageOf
+                    .replace('{current}', String(index + 1))
+                    .replace('{total}', totalImages.toString())}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />

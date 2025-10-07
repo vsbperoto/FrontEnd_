@@ -41,7 +41,8 @@ const SEOHead: React.FC<SEOHeadProps> = ({ page = 'home' }) => {
   const previewImage = `${baseUrl}/og-image.jpg`;
 
   // JSON-LD Structured Data
-  const structuredData = {
+  const structuredData = React.useMemo(
+    () => ({
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "@id": baseUrl,
@@ -129,7 +130,9 @@ const SEOHead: React.FC<SEOHeadProps> = ({ page = 'home' }) => {
     ],
     "openingHours": "Mo-Su 09:00-21:00",
     "priceRange": "1170-2740 BGN"
-  };
+    }),
+    [language, currentSEO.description, previewImage]
+  );
 
   React.useEffect(() => {
     // Update document title
