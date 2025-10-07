@@ -41,7 +41,7 @@ export async function getGalleries(): Promise<Gallery[]> {
       console.error('❌ [GalleryService] Supabase error:', error.message, error);
       // Detect Postgres permission error for schema public and surface a
       // clearer developer message so it's easier to diagnose from the UI.
-      if ((error as any)?.code === '42501' || (error as any)?.message?.includes('permission denied for schema')) {
+      if (error.code === '42501' || error.message?.includes('permission denied for schema')) {
         console.error('🔐 [GalleryService] Permission error: your anon role likely lacks schema/table SELECT privileges. See EverMoreBackEnd_/supabase/public_read_policies.sql for guidance.');
       }
       return [];
@@ -86,8 +86,8 @@ export async function updateGallery(id: string, updates: Partial<Gallery>): Prom
     }
     
     return res.json();
-  } catch (error: any) {
-    if (error.code === 'PGRST116') {
+  } catch (error: unknown) {
+    if (error instanceof Error && 'code' in error && (error as { code?: string }).code === 'PGRST116') {
       throw new Error('Gallery not found');
     }
     throw error;

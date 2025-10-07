@@ -1,6 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Calendar, User, Tag, Clock, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Calendar, User, Clock, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function BlogPage() {

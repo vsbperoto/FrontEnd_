@@ -23,7 +23,7 @@ export async function sendCredentialsEmail({
       throw new Error(error.message || 'Failed to send email');
     }
 
-    const data = await response.json();
+    await response.json();
     return { success: true };
   } catch (error) {
     console.error('Error sending credentials email:', error);

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, Heart, Star } from 'lucide-react';
+import React from 'react';
+import { Mail, Phone } from 'lucide-react';
 import QuickContactForm from '../components/QuickContactForm';
 import { useLanguage } from '../contexts/LanguageContext';
 
