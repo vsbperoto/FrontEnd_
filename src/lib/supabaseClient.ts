@@ -3,12 +3,12 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 if (!isSupabaseConfigured) {
   console.warn("⚠️ Missing Supabase environment variables!");
   console.warn("VITE_SUPABASE_URL:", supabaseUrl || "❌ Missing");
-  console.warn("VITE_SUPABASE_ANON_KEY:", !!supabaseAnonKey ? "✅ Present" : "❌ Missing");
+  console.warn("VITE_SUPABASE_ANON_KEY:", supabaseAnonKey ? "✅ Present" : "❌ Missing");
   console.warn("Supabase features will be disabled.");
 }
 

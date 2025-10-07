@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, FileText, HardDrive, Users, Star, Crown, Zap, Shield } from 'lucide-react';
+import { CheckCircle, FileText, Users, Star, Shield } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function PricingSection() {

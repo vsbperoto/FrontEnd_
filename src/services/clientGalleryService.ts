@@ -168,7 +168,8 @@ export async function getFavorites(galleryId: string, clientEmail: string): Prom
       return [];
     }
 
-    return (data || []).map((fav: any) => fav.image_public_id);
+    const favorites = (data as { image_public_id: string }[] | null) ?? [];
+    return favorites.map((favorite) => favorite.image_public_id);
   } catch (err) {
     console.error('Unexpected error fetching favorites:', err);
     return [];
