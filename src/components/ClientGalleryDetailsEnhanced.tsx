@@ -1,193 +1,776 @@
-             </div>
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowLeft,
+  ArrowUp,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Facebook,
+  Grid2X2,
+  Grip,
+  Heart,
+  Instagram,
+  Link as LinkIcon,
+  Share2,
+  Sparkles,
+  X,
+} from "lucide-react";
+import type { ClientGallery } from "../types";
+import { supabase } from "../lib/supabase";
+import { cloudinaryService } from "../services/cloudinaryService";
+import {
+  getCloudinaryFullSize,
+  getCloudinaryOriginal,
+  getCloudinaryPreview,
+} from "../utils/cloudinary";
+
+interface ClientGalleryDetailsEnhancedProps {
+  gallery: ClientGallery;
+  onBack?: () => void;
+  onUpdate?: () => void;
+}
+
+type ViewMode = "grid" | "masonry";
+
+type ShareOptionKey = "instagram" | "facebook" | "copy";
+
+const shareOptionOrder: ShareOptionKey[] = ["instagram", "facebook", "copy"];
+
+const tooltipBaseClasses =
+  "pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#71513d] shadow-lg shadow-[#d9c3b0]/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100";
+
+const ClientGalleryDetailsEnhanced: React.FC<
+  ClientGalleryDetailsEnhancedProps
+> = ({ gallery, onBack }) => {
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("masonry");
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [shareTarget, setShareTarget] = useState<string | null>(null);
+  const [copiedShare, setCopiedShare] = useState(false);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
+
+  const session = useMemo(() => {
+    const raw = sessionStorage.getItem("client_gallery_session");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as { gallery_id: string; client_email: string };
+    } catch (error) {
+      console.warn("[ClientGallery] Failed to parse session", error);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadFavorites() {
+      if (!session?.client_email || !gallery?.id) {
+        setLoadingFavorites(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("client_gallery_favorites")
+        .select("image_public_id")
+        .eq("gallery_id", gallery.id)
+        .eq("client_email", session.client_email);
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error("[ClientGallery] Failed to load favorites", error);
+      }
+
+      const initialFavorites = new Set<string>(
+        (data || []).map((fav) => fav.image_public_id),
+      );
+      setFavorites(initialFavorites);
+      setLoadingFavorites(false);
+    }
+
+    loadFavorites();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [gallery.id, session?.client_email]);
+
+  const images = useMemo(() => gallery.images || [], [gallery.images]);
+
+  const filteredImages = useMemo(() => {
+    if (!showFavoritesOnly) {
+      return images;
+    }
+
+    return images.filter((imageId) => favorites.has(imageId));
+  }, [favorites, images, showFavoritesOnly]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    if (filteredImages.length === 0) {
+      setLightboxIndex(null);
+      return;
+    }
+
+    if (lightboxIndex >= filteredImages.length) {
+      setLightboxIndex(filteredImages.length - 1);
+    }
+  }, [filteredImages, lightboxIndex]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setLightboxIndex(null);
+      }
+      if (event.key === "ArrowRight") {
+        setLightboxIndex((current) => {
+          if (current === null) return current;
+          const nextIndex = current + 1;
+          return nextIndex >= filteredImages.length ? 0 : nextIndex;
+        });
+      }
+      if (event.key === "ArrowLeft") {
+        setLightboxIndex((current) => {
+          if (current === null) return current;
+          const previousIndex = current - 1;
+          return previousIndex < 0 ? filteredImages.length - 1 : previousIndex;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    document.body.classList.add("overflow-hidden");
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [filteredImages.length, lightboxIndex]);
+
+  useEffect(() => {
+    if (!shareTarget) return;
+    const closeShareOnOutside = () => setShareTarget(null);
+    window.addEventListener("scroll", closeShareOnOutside, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", closeShareOnOutside);
+    };
+  }, [shareTarget]);
+
+  const toggleFavorite = useCallback(
+    async (imageId: string) => {
+      if (!session?.client_email || !gallery?.id) {
+        return;
+      }
+
+      const isFavorite = favorites.has(imageId);
+
+      try {
+        if (isFavorite) {
+          const { error } = await supabase
+            .from("client_gallery_favorites")
+            .delete()
+            .eq("gallery_id", gallery.id)
+            .eq("client_email", session.client_email)
+            .eq("image_public_id", imageId);
+
+          if (!error) {
+            setFavorites((prev) => {
+              const updated = new Set(prev);
+              updated.delete(imageId);
+              return updated;
+            });
+          }
+        } else {
+          const { error } = await supabase
+            .from("client_gallery_favorites")
+            .insert({
+              gallery_id: gallery.id,
+              client_email: session.client_email,
+              image_public_id: imageId,
+            });
+
+          if (!error) {
+            setFavorites((prev) => {
+              const updated = new Set(prev);
+              updated.add(imageId);
+              return updated;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("[ClientGallery] Failed to toggle favorite", error);
+      }
+    },
+    [favorites, gallery.id, session?.client_email],
+  );
+
+  const handleDownload = useCallback((imageId: string) => {
+    const url = getCloudinaryFullSize(imageId);
+    if (!url) return;
+
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${imageId.split("/").pop() || "gallery-image"}.jpg`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  }, []);
+
+  const handleShare = useCallback((imageId: string) => {
+    setCopiedShare(false);
+    setShareTarget((current) => (current === imageId ? null : imageId));
+  }, []);
+
+  const handleShareOption = useCallback(
+    async (imageId: string, option: ShareOptionKey) => {
+      const url = getCloudinaryOriginal(imageId);
+      if (!url) return;
+
+      if (option === "copy") {
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopiedShare(true);
+        } catch (error) {
+          console.error("[ClientGallery] Failed to copy link", error);
+        }
+        return;
+      }
+
+      if (option === "facebook") {
+        const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        window.open(shareUrl, "_blank", "noopener");
+        return;
+      }
+
+      if (option === "instagram") {
+        const shareUrl = `https://www.instagram.com/?url=${encodeURIComponent(url)}`;
+        window.open(shareUrl, "_blank", "noopener");
+      }
+    },
+    [],
+  );
+
+  const lightboxImageId =
+    lightboxIndex === null ? null : filteredImages[lightboxIndex];
+
+  const shareButtons: Record<
+    ShareOptionKey,
+    { label: string; icon: React.ReactNode }
+  > = {
+    instagram: {
+      label: "Share to Instagram",
+      icon: <Instagram className="h-4 w-4" />,
+    },
+    facebook: {
+      label: "Share to Facebook",
+      icon: <Facebook className="h-4 w-4" />,
+    },
+    copy: {
+      label: copiedShare ? "Link copied!" : "Copy link",
+      icon: <LinkIcon className="h-4 w-4" />,
+    },
+  };
+
+  return (
+    <div className="relative min-h-screen bg-[#f9f4ef] text-[#5f4636]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_#fefaf4_0%,_#f1e4d6_50%,_#e7d4c0_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/fabric-of-squares.png')] opacity-[0.08]" />
+
+      <div className="relative z-10">
+        <header className="border-b border-[#d8c4b4]/60 bg-white/70 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="group rounded-full bg-[#f2e3d6] p-3 text-[#7c5a45] shadow-md shadow-[#d9c3b0]/50 transition hover:bg-[#eed4c0]"
+              >
+                <ArrowLeft className="h-5 w-5 transition group-hover:-translate-x-1" />
+              </button>
+              <div>
+                <p className="text-sm uppercase tracking-[0.4em] text-[#b08a6b]">
+                  Client Gallery
+                </p>
+                <h1
+                  className="mt-2 text-3xl font-semibold text-[#5f4636] sm:text-4xl"
+                  style={{ fontFamily: "Playfair Display, serif" }}
+                >
+                  {gallery.bride_name && gallery.groom_name
+                    ? `${gallery.bride_name} & ${gallery.groom_name}`
+                    : gallery.client_name || "Wedding Moments"}
+                </h1>
+                {gallery.wedding_date && (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-[#7b5b4b]">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      {new Date(gallery.wedding_date).toLocaleDateString()}
+                    </span>
                   </div>
-                  {gallery.welcome_message && (
-                    <div className="boho-card rounded-boho p-6">
-                      <h3 className="text-xl font-semibold text-boho-brown mb-3 boho-heading">
-                        Welcome Message
-                      </h3>
-                      <p className="text-boho-rust">{gallery.welcome_message}</p>
-                    </div>
-                  )}
+                )}
+              </div>
+            </div>
 
-                  {gallery.admin_notes && (
-                    <div className="boho-card rounded-boho p-6">
-                      <h3 className="text-xl font-semibold text-boho-brown mb-3 boho-heading">
-                        Admin Notes
-                      </h3>
-                      <p className="text-boho-rust">{gallery.admin_notes}</p>
-                    </div>
-                  )}
-                </div>
+            <div className="flex flex-col items-start gap-4 md:items-end">
+              <div className="flex items-center gap-3 rounded-full bg-white/80 px-5 py-3 text-sm text-[#71513d] shadow-lg shadow-[#d9c3b0]/40">
+                <Sparkles className="h-4 w-4 text-[#b98560]" />
+                <span>
+                  {favorites.size}{" "}
+                  {favorites.size === 1 ? "favorite" : "favorites"} ·{" "}
+                  {images.length}{" "}
+                  {images.length === 1 ? "photograph" : "photographs"}
+                </span>
+              </div>
+
+              {gallery.welcome_message && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-md rounded-[1.75rem] bg-gradient-to-br from-white/90 to-[#f7e8dc]/80 p-5 text-sm text-[#6f5646] shadow-xl shadow-[#d9c3b0]/40"
+                >
+                  <p
+                    className="leading-relaxed"
+                    style={{ fontFamily: "Playfair Display, serif" }}
+                  >
+                    {gallery.welcome_message}
+                  </p>
+                </motion.div>
               )}
+            </div>
+          </div>
+        </header>
 
-              {activeTab === 'analytics' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="boho-card rounded-boho p-6">
-                      <h3 className="text-lg font-semibold text-boho-brown mb-4 boho-heading flex items-center space-x-2">
-                        <Activity className="w-5 h-5" />
-                        <span>Engagement Metrics</span>
-                      </h3>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-boho-rust">Views</span>
-                            <span className="text-boho-brown font-bold">{stats?.totalViews || 0}</span>
-                          </div>
-                          <div className="w-full h-2 bg-boho-warm bg-opacity-20 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-500"
-                              style={{ width: `${Math.min(100, ((stats?.totalViews || 0) / 100) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
+        <main className="mx-auto max-w-6xl px-6 py-10">
+          <AnimatePresence>
+            {showFavoritesOnly && (
+              <motion.div
+                key="favorites-banner"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-8 flex items-center gap-3 rounded-[1.5rem] bg-[#f4e3d6] px-5 py-3 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/30"
+              >
+                <Heart className="h-4 w-4 fill-[#d27a6c] text-[#d27a6c]" />
+                <span>Showing only the moments you adored.</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-boho-rust">Downloads</span>
-                            <span className="text-boho-brown font-bold">{stats?.totalDownloads || 0}</span>
-                          </div>
-                          <div className="w-full h-2 bg-boho-warm bg-opacity-20 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-purple-500"
-                              style={{ width: `${Math.min(100, ((stats?.totalDownloads || 0) / 50) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-boho-rust">Favorites</span>
-                            <span className="text-boho-brown font-bold">{stats?.totalFavorites || 0}</span>
-                          </div>
-                          <div className="w-full h-2 bg-boho-warm bg-opacity-20 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-red-500"
-                              style={{ width: `${Math.min(100, ((stats?.totalFavorites || 0) / gallery.images.length) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="boho-card rounded-boho p-6">
-                      <h3 className="text-lg font-semibold text-boho-brown mb-4 boho-heading">
-                        Quick Stats
-                      </h3>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center py-2 border-b border-boho-brown border-opacity-10">
-                          <span className="text-boho-rust">Avg. Views per Visitor</span>
-                          <span className="text-boho-brown font-bold">
-                            {stats?.uniqueVisitors ? ((stats.totalViews / stats.uniqueVisitors).toFixed(1)) : '0'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-boho-brown border-opacity-10">
-                          <span className="text-boho-rust">Downloads per Image</span>
-                          <span className="text-boho-brown font-bold">
-                            {gallery.images.length ? ((stats?.totalDownloads || 0) / gallery.images.length).toFixed(2) : '0'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-2">
-                          <span className="text-boho-rust">Favorite Rate</span>
-                          <span className="text-boho-brown font-bold">
-                            {gallery.images.length ? (((stats?.totalFavorites || 0) / gallery.images.length) * 100).toFixed(1) : '0'}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          {loadingFavorites ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={`placeholder-${index}`}
+                  className="aspect-[3/4] overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#f3e3d6] via-[#f7ede2] to-[#edd8c2] shadow-lg shadow-[#d9c3b0]/40"
+                >
+                  <div className="h-full w-full animate-pulse bg-[radial-gradient(circle_at_top,_#fdf6ee_0%,_#f0dfcc_50%,_#e4cdb6_100%)]" />
                 </div>
-              )}
-
-              {activeTab === 'images' && (
-                <div className="space-y-6">
-                  {selectedImages.size > 0 && (
-                    <div className="flex items-center justify-between p-4 bg-boho-sage bg-opacity-10 rounded-boho border border-boho-sage border-opacity-30">
-                      <span className="text-boho-brown font-medium">
-                        {selectedImages.size} image{selectedImages.size !== 1 ? 's' : ''} selected
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={handleRemoveImages}
-                          className="px-4 py-2 bg-red-100 text-red-700 rounded-boho hover:bg-red-200 transition-all flex items-center space-x-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>Remove Selected</span>
-                        </button>
-                        <button
-                          onClick={() => setSelectedImages(new Set())}
-                          className="px-4 py-2 bg-boho-sage bg-opacity-20 text-boho-brown rounded-boho hover:bg-opacity-30 transition-all"
-                        >
-                          Clear Selection
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                    {gallery.images.map((imageId) => (
-                      <div
-                        key={imageId}
-                        onClick={() => toggleImageSelection(imageId)}
-                        className={`aspect-square rounded-boho overflow-hidden border-2 cursor-pointer transition-all ${
-                          selectedImages.has(imageId)
-                            ? 'border-boho-sage ring-2 ring-boho-sage ring-offset-2'
-                            : 'border-boho-brown border-opacity-20 hover:border-opacity-40'
-                        }`}
-                      >
-                        <img
-                          src={cloudinaryService.getOptimizedUrl(imageId, {
-                            width: 150,
-                            height: 150,
-                            crop: 'fill',
-                            quality: 'auto'
-                          })}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'settings' && (
-                <div className="space-y-6">
-                  <div className="boho-card rounded-boho p-6">
-                    <h3 className="text-lg font-semibold text-boho-brown mb-4">Gallery Settings</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between py-3 border-b border-boho-brown border-opacity-10">
-                        <div>
-                          <p className="font-medium text-boho-brown">Allow Downloads</p>
-                          <p className="text-sm text-boho-rust">Clients can download images</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={gallery.allow_downloads}
-                          readOnly
-                          className="w-5 h-5 text-boho-sage border-boho-brown rounded focus:ring-boho-sage"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between py-3 border-b border-boho-brown border-opacity-10">
-                        <div>
-                          <p className="font-medium text-boho-brown">Status</p>
-                          <p className="text-sm text-boho-rust">Current gallery status</p>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          gallery.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {gallery.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+              ))}
+            </div>
+          ) : filteredImages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-[2rem] bg-white/80 px-10 py-20 text-center shadow-xl shadow-[#d9c3b0]/40">
+              <div className="relative mb-6 h-24 w-24">
+                <div className="absolute inset-0 rounded-full bg-[#f0dece]/80" />
+                <svg
+                  viewBox="0 0 120 120"
+                  className="relative h-24 w-24 fill-none text-[#d1a082]"
+                >
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="46"
+                    stroke="currentColor"
+                    strokeDasharray="6 10"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M35 70 C45 50, 75 50, 85 70"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="48" cy="52" r="3" fill="currentColor" />
+                  <circle cx="72" cy="52" r="3" fill="currentColor" />
+                </svg>
+              </div>
+              <h2
+                className="text-2xl font-semibold text-[#6a4c3c]"
+                style={{ fontFamily: "Playfair Display, serif" }}
+              >
+                {showFavoritesOnly
+                  ? "Your heart is still choosing."
+                  : "The gallery is almost ready."}
+              </h2>
+              <p className="mt-3 max-w-md text-sm text-[#7d5d4b]">
+                {showFavoritesOnly
+                  ? "Tap the hearts to add favorites and weave your collection of cherished memories."
+                  : "Return soon to explore every handcrafted moment from this love story."}
+              </p>
+            </div>
+          ) : (
+            <div
+              className={
+                viewMode === "grid"
+                  ? "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                  : "columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4"
+              }
+            >
+              {filteredImages.map((imageId, index) => (
+                <motion.div
+                  key={imageId}
+                  layout
+                  className={
+                    viewMode === "masonry"
+                      ? "mb-6 break-inside-avoid"
+                      : "aspect-[3/4] overflow-hidden rounded-[1.75rem]"
+                  }
+                >
+                  <ImageCard
+                    imageId={imageId}
+                    allowDownload={gallery.allow_downloads}
+                    isFavorite={favorites.has(imageId)}
+                    onOpen={() => setLightboxIndex(index)}
+                    onToggleFavorite={() => toggleFavorite(imageId)}
+                    onDownload={() => handleDownload(imageId)}
+                    onShare={() => handleShare(imageId)}
+                    showShare={shareTarget === imageId}
+                    viewMode={viewMode}
+                    shareButtons={shareButtons}
+                    onShareOption={(option) =>
+                      handleShareOption(imageId, option)
+                    }
+                  />
+                </motion.div>
+              ))}
+            </div>
           )}
-        </div>
+        </main>
       </div>
+
+      <AnimatePresence>
+        {lightboxImageId && (
+          <motion.div
+            key="lightbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f140d]/70 backdrop-blur-sm"
+          >
+            <button
+              onClick={() => setLightboxIndex(null)}
+              className="absolute right-8 top-8 rounded-full bg-white/80 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white"
+              aria-label="Close viewer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={() =>
+                setLightboxIndex((current) => {
+                  if (current === null) return current;
+                  return current === 0
+                    ? filteredImages.length - 1
+                    : current - 1;
+                })
+              }
+              className="absolute left-6 rounded-full bg-white/70 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <button
+              onClick={() =>
+                setLightboxIndex((current) => {
+                  if (current === null) return current;
+                  return current >= filteredImages.length - 1 ? 0 : current + 1;
+                })
+              }
+              className="absolute right-6 rounded-full bg-white/70 p-3 text-[#6d4f3f] shadow-lg shadow-black/20 transition hover:bg-white"
+              aria-label="Next image"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+
+            <motion.img
+              key={lightboxImageId}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              src={getCloudinaryPreview(lightboxImageId)}
+              alt="Highlighted gallery photograph"
+              className="max-h-[80vh] max-w-[80vw] rounded-[2rem] object-cover shadow-2xl shadow-black/50"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="absolute bottom-10 flex items-center gap-3 rounded-full bg-white/80 px-6 py-3 text-sm text-[#6b4f3f] shadow-xl shadow-black/20"
+            >
+              {gallery.allow_downloads && (
+                <button
+                  onClick={() =>
+                    lightboxImageId && handleDownload(lightboxImageId)
+                  }
+                  className="flex items-center gap-2 rounded-full bg-[#f2e3d6] px-3 py-2 transition hover:bg-[#eed4c0]"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </button>
+              )}
+              <button
+                onClick={() => lightboxImageId && handleShare(lightboxImageId)}
+                className="flex items-center gap-2 rounded-full bg-[#f2e3d6] px-3 py-2 transition hover:bg-[#eed4c0]"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="fixed bottom-6 right-6 z-40 flex flex-col gap-3"
+      >
+        <FloatingActionButton
+          icon={<ArrowUp className="h-4 w-4" />}
+          label="Back to top"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        />
+        <FloatingActionButton
+          active={showFavoritesOnly}
+          icon={
+            <Heart
+              className={`h-4 w-4 ${showFavoritesOnly ? "fill-[#d27a6c] text-[#d27a6c]" : ""}`}
+            />
+          }
+          label={showFavoritesOnly ? "Show all moments" : "Show favorites"}
+          onClick={() => setShowFavoritesOnly((previous) => !previous)}
+        />
+        <FloatingActionButton
+          icon={
+            viewMode === "grid" ? (
+              <Grip className="h-4 w-4" />
+            ) : (
+              <Grid2X2 className="h-4 w-4" />
+            )
+          }
+          label={viewMode === "grid" ? "Masonry view" : "Grid view"}
+          onClick={() =>
+            setViewMode((previous) =>
+              previous === "grid" ? "masonry" : "grid",
+            )
+          }
+        />
+      </motion.div>
     </div>
   );
 };
+
+interface ImageCardProps {
+  imageId: string;
+  isFavorite: boolean;
+  allowDownload: boolean;
+  onOpen: () => void;
+  onToggleFavorite: () => void;
+  onDownload: () => void;
+  onShare: () => void;
+  showShare: boolean;
+  viewMode: ViewMode;
+  shareButtons: Record<
+    ShareOptionKey,
+    { label: string; icon: React.ReactNode }
+  >;
+  onShareOption: (option: ShareOptionKey) => void;
+}
+
+const ImageCard: React.FC<ImageCardProps> = ({
+  imageId,
+  isFavorite,
+  allowDownload,
+  onOpen,
+  onToggleFavorite,
+  onDownload,
+  onShare,
+  showShare,
+  viewMode,
+  shareButtons,
+  onShareOption,
+}) => {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-[1.75rem] bg-[#f7ece2]/60 shadow-xl shadow-[#d9c3b0]/40 transition ${
+        viewMode === "grid" ? "h-full" : ""
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onOpen}
+        className="relative block h-full w-full"
+      >
+        <AnimatePresence>{!loaded && <ShimmerOverlay />}</AnimatePresence>
+        <motion.img
+          initial={{ scale: 1.05 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.03 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          src={cloudinaryService.getOptimizedUrl(imageId, {
+            width: 900,
+            quality: "auto",
+            crop: "fill",
+          })}
+          alt="Client gallery photograph"
+          onLoad={() => setLoaded(true)}
+          className={`h-full w-full object-cover transition duration-700 group-hover:scale-[1.04] ${
+            viewMode === "grid" ? "aspect-[3/4]" : ""
+          }`}
+        />
+      </button>
+
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#2e1c13]/40 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+
+      <div className="absolute left-4 top-4 flex flex-col gap-2">
+        <motion.button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleFavorite();
+          }}
+          whileTap={{ scale: 0.9 }}
+          animate={
+            isFavorite
+              ? { scale: [1, 1.2, 1], transition: { duration: 0.4 } }
+              : { scale: 1 }
+          }
+          className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white"
+        >
+          <span className="pointer-events-none absolute -top-9 whitespace-nowrap rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#71513d] opacity-0 shadow-lg shadow-[#d9c3b0]/40 transition group-hover:opacity-100">
+            {isFavorite ? "Remove favorite" : "Save to favorites"}
+          </span>
+          <Heart
+            className={`h-5 w-5 transition ${isFavorite ? "fill-[#d27a6c] text-[#d27a6c]" : ""}`}
+          />
+        </motion.button>
+      </div>
+
+      <div className="absolute bottom-4 right-4 flex items-center gap-2">
+        {allowDownload && (
+          <div className="group relative">
+            <span className={tooltipBaseClasses}>Download photo</span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDownload();
+              }}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        <div className="group relative">
+          <span className={tooltipBaseClasses}>
+            {showShare ? "Close share options" : "Share"}
+          </span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onShare();
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-[#6d4f3f] shadow-lg shadow-[#d9c3b0]/50 transition hover:bg-white"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showShare && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-20 right-4 z-20 w-52 rounded-2xl bg-white/95 p-3 text-sm text-[#6d4f3f] shadow-2xl shadow-[#b99273]/40"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="px-2 pb-2 text-xs uppercase tracking-[0.2em] text-[#ba8e6d]">
+              Share
+            </p>
+            <div className="flex flex-col gap-2">
+              {shareOptionOrder.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onShareOption(option);
+                  }}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-[#f6e8dc]"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f2e3d6] text-[#7d5b46]">
+                    {shareButtons[option].icon}
+                  </span>
+                  <span className="text-xs font-medium tracking-wide text-[#6d4f3f]">
+                    {shareButtons[option].label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const ShimmerOverlay: React.FC = () => (
+  <motion.div
+    key="shimmer"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="absolute inset-0 animate-[pulse_1.8s_ease-in-out_infinite] bg-gradient-to-br from-[#f3e2d6] via-[#f7ede2] to-[#edd8c2]"
+  />
+);
+
+interface FloatingActionButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+}
+
+const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
+  icon,
+  label,
+  onClick,
+  active,
+}) => (
+  <div className="group relative">
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-12 w-12 items-center justify-center rounded-full border border-[#e7d4c3] bg-white/90 text-[#6d4f3f] shadow-xl shadow-[#d9c3b0]/40 transition hover:-translate-y-1 hover:bg-white ${
+        active ? "ring-2 ring-[#d29b7a]/80" : ""
+      }`}
+    >
+      {icon}
+    </button>
+    <span className="pointer-events-none absolute right-[110%] top-1/2 -translate-y-1/2 rounded-full bg-[#f7ede2] px-3 py-1 text-xs font-medium text-[#6d4f3f] opacity-0 shadow-lg shadow-[#d9c3b0]/40 transition group-hover:opacity-100">
+      {label}
+    </span>
+  </div>
+);
+
+export default ClientGalleryDetailsEnhanced;
