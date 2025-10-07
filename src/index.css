@@ -1,0 +1,387 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Boho Color Variables */
+:root {
+  /* Earth Tones */
+  --primary-brown: #2c3831;  /* Dark green */
+  --terracotta: #C65D00;      /* Terracotta */
+  --sage-green: #7c9885;      /* Sage green */
+  --cream: #faf8f3;           /* Cream */
+  
+  /* Saturated Colors */
+  --boho-purple: #8B4789;     /* Deep purple */
+  --boho-orange: #c9705f;     /* Terracotta */
+  --boho-fuchsia: #C154C1;    /* Fuchsia */
+  
+  /* Base */
+  --white: #FFFFFF;
+  --off-white: #faf8f3;
+  
+  /* Text - NO BLACK */
+  --text-primary: #2c3831;    /* Dark green instead of black */
+  --text-secondary: #2c3831;   /* Dark green */
+  
+  /* Typography */
+  --font-serif: 'Playfair Display', 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--off-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+/* Font optimization */
+@font-face {
+  font-family: 'Playfair Display';
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-display: swap;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Touch optimization */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Improved button interactions for mobile */
+button, a, input, textarea, select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure minimum touch targets */
+button, a[role="button"], input[type="button"], input[type="submit"] {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Prevent zoom on input focus on iOS */
+input, textarea, select {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--off-white);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c9705f;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7c9885;
+}
+
+/* Focus styles */
+*:focus {
+  outline: 2px solid #7c9885;
+  outline-offset: 2px;
+}
+
+/* Button base styles */
+button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Link styles */
+a {
+  color: #c9705f;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #7c9885;
+}
+
+/* Form elements */
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Utility classes */
+.text-gradient {
+  background: linear-gradient(135deg, #c9705f, #7c9885);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-boho-gradient {
+  background: linear-gradient(135deg, #c9705f, #7c9885);
+}
+
+.bg-sage-gradient {
+  background: linear-gradient(135deg, #7c9885, #2c3831);
+}
+
+.bg-purple-gradient {
+  background: linear-gradient(135deg, var(--boho-purple), var(--boho-fuchsia));
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes parallax {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-50px);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.parallax-bg {
+  animation: parallax 20s ease-in-out infinite alternate;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .hero-title {
+    font-size: clamp(2rem, 8vw, 2.5rem) !important;
+    line-height: 1.2;
+  }
+  
+  .hero-subtitle {
+    font-size: clamp(0.875rem, 4vw, 1rem) !important;
+  }
+  
+  /* Mobile navigation improvements */
+  .mobile-nav {
+    display: block;
+  }
+  
+  /* Better mobile spacing */
+  .mobile-spacing {
+    padding: 1rem;
+  }
+  
+  /* Mobile-first button sizing */
+  .mobile-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+  
+  /* Improved mobile typography */
+  h1 { font-size: clamp(1.75rem, 6vw, 2.5rem); }
+  h2 { font-size: clamp(1.5rem, 5vw, 2rem); }
+  h3 { font-size: clamp(1.25rem, 4vw, 1.75rem); }
+  
+  /* Mobile-optimized spacing */
+  .section-padding {
+    padding: 3rem 1rem;
+  }
+  
+  /* Improved mobile forms */
+  input, textarea, select {
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    border: 2px solid #e5d4c1;
+    background: #faf8f3;
+    font-size: 16px;
+    min-height: 48px;
+  }
+  
+  /* Mobile-friendly cards */
+  .card-mobile {
+    margin: 0 1rem 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Tablet responsive */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .tablet-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .tablet-spacing {
+    padding: 1.5rem;
+  }
+  
+  /* Tablet-optimized touch targets */
+  button, a[role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 1024px) {
+  .desktop-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .desktop-spacing {
+    padding: 2rem;
+  }
+  
+  /* Desktop hover states */
+  @media (hover: hover) {
+    .hover-lift:hover {
+      transform: translateY(-2px);
+      transition: transform 0.2s ease;
+    }
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimize for retina displays */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #f5f5f5;
+    --text-secondary: #e0e0e0;
+    --off-white: #1a1a1a;
+  }
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced focus states for accessibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #7c9885;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(124, 152, 133, 0.1);
+}
+
+/* Improved button hover states */
+.btn-primary {
+  background: #7c9885;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: #6a8470;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 152, 133, 0.3);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 2px solid #c9705f;
+  color: #c9705f;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: #c9705f;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(201, 112, 95, 0.3);
+}
+
+.group:hover .group-hover\:scale-103 {
+  transform: scale(1.03);
+}
+
+/* Print styles */
+@media print {
+  * {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}

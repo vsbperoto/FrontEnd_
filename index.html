@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evermore Weddings | Професионална сватбена фотография България</title>
+    <meta name="description" content="Професионален екип от 5 души за сватбена фотография и видео в България. Над 500 сватби, луксозни албуми, онлайн галерии. Резервирайте вашата дата днес!" />
+    <meta name="keywords" content="сватбена фотография, сватбен фотограф, България, Плевен, сватбено видео, фотосесия, луксозни албуми" />
+    
+    <!-- Preload fonts for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Critical CSS for above-the-fold content -->
+    <style>
+      /* Critical CSS for mobile-first hero section */
+      .hero-critical {
+        position: relative;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #2c3831 0%, #3a4a3e 100%);
+      }
+      
+      .hero-content {
+        text-align: center;
+        max-width: 90%;
+        z-index: 10;
+        position: relative;
+      }
+      
+      .hero-title {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2rem, 8vw, 4rem);
+        font-weight: 300;
+        color: white;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+      }
+      
+      .hero-subtitle {
+        font-size: clamp(1rem, 4vw, 1.5rem);
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 2rem;
+        line-height: 1.5;
+      }
+      
+      /* Touch-friendly buttons */
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        min-width: 48px;
+        padding: 14px 32px;
+        background: #C19A6B;
+        color: white;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: bold;
+        font-size: 1.125rem;
+        transition: all 0.3s ease;
+        touch-action: manipulation;
+      }
+      
+      .btn-primary:hover {
+        background: #A87F50;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(193, 154, 107, 0.3);
+      }
+      
+      /* Mobile navigation */
+      .nav-mobile {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        z-index: 50;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+      }
+      
+      @media (max-width: 640px) {
+        .hero-content {
+          max-width: 95%;
+          padding: 0 1rem;
+        }
+        
+        .btn-primary {
+          width: 100%;
+          margin-bottom: 1rem;
+        }
+      }
+    </style>
+    
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="Evermore Weddings | Професионална сватбена фотография България" />
+    <meta property="og:description" content="Професионален екип от 5 души за сватбена фотография и видео в България. Над 500 сватби, луксозни албуми, онлайн галерии." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://evermore-weddings.bg" />
+    <meta property="og:image" content="https://evermore-weddings.bg/og-image.jpg" />
+    <meta property="og:site_name" content="Evermore Weddings" />
+    <meta property="og:locale" content="bg_BG" />
+    
+    <!-- Twitter Card tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Evermore Weddings | Професионална сватбена фотография България" />
+    <meta name="twitter:description" content="Професионален екип от 5 души за сватбена фотография и видео в България." />
+    <meta name="twitter:image" content="https://evermore-weddings.bg/og-image.jpg" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://evermore-weddings.bg" />
+    
+    <!-- Hreflang tags -->
+    <link rel="alternate" hreflang="bg" href="https://evermore-weddings.bg" />
+    <link rel="alternate" hreflang="en" href="https://evermore-weddings.bg?lang=en" />
+    <link rel="alternate" hreflang="x-default" href="https://evermore-weddings.bg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
