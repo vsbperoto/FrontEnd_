@@ -1,3 +1,33 @@
+export type PricingPackageIcon =
+  | "star"
+  | "camera"
+  | "users"
+  | "film"
+  | "sparkles";
+
+export interface PricingPackageSectionContent {
+  title: string;
+  items: string[];
+}
+
+export interface PricingPackageContent {
+  id: string;
+  title: string;
+  subtitle: string;
+  price: {
+    eur: string;
+    bgn: string;
+  };
+  coverage: string;
+  highlights: string[];
+  sections: PricingPackageSectionContent[];
+  bonuses?: string[];
+  icon: PricingPackageIcon;
+  featured?: boolean;
+  premiumNote?: string;
+  quote?: string;
+}
+
 export interface TranslationContent {
   // Navigation
   home: string;
@@ -5,28 +35,28 @@ export interface TranslationContent {
   pricing: string;
   about: string;
   contact: string;
-  
+
   // Hero Section
   heroTitle: string;
   heroSubtitle: string;
   cta: string;
-  
+
   // About Section
   aboutTitle: string;
   aboutText: string;
-  
+
   // Testimonials
   testimonialTitle: string;
-  
+
   // Packages
   packageEssential: string;
   packageSignature: string;
   packageLuxury: string;
   bookNow: string;
-  
+
   // Lead Magnet
   downloadChecklist: string;
-  
+
   // Additional content
   nav: {
     home: string;
@@ -270,6 +300,18 @@ export interface TranslationContent {
     rating: string;
     experience: string;
     professionals: string;
+    contractHighlight: {
+      badge: string;
+      title: string;
+      description: string;
+    };
+    photoPackagesTitle: string;
+    photoPackagesSubtitle: string;
+    videoPackagesTitle: string;
+    videoPackagesSubtitle: string;
+    photoPackages: PricingPackageContent[];
+    videoPackages: PricingPackageContent[];
+    comboPackage: PricingPackageContent;
   };
   clientGalleryAccess: {
     title: string;
